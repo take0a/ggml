@@ -1,21 +1,21 @@
 # ggml
 
-[Roadmap](https://github.com/users/ggerganov/projects/7) / [Manifesto](https://github.com/ggerganov/llama.cpp/discussions/205)
+[ロードマップ](https://github.com/users/ggerganov/projects/7) / [マニフェスト](https://github.com/ggerganov/llama.cpp/discussions/205)
 
-Tensor library for machine learning
+機械学習用テンソルライブラリ
 
-***Note that this project is under active development. \
-Some of the development is currently happening in the [llama.cpp](https://github.com/ggerganov/llama.cpp) and [whisper.cpp](https://github.com/ggerganov/whisper.cpp) repos***
+***このプロジェクトは現在開発中です。\
+開発の一部は現在、[llama.cpp](https://github.com/ggerganov/llama.cpp) および [whisper.cpp](https://github.com/ggerganov/whisper.cpp) リポジトリで行われています***
 
-## Features
+## 機能
 
-- Low-level cross-platform implementation
-- Integer quantization support
-- Broad hardware support
-- Automatic differentiation
-- ADAM and L-BFGS optimizers
-- No third-party dependencies
-- Zero memory allocations during runtime
+- 低レベルのクロスプラットフォーム実装
+- 整数量子化のサポート
+- 幅広いハードウェアサポート
+- 自動微分化
+- ADAMおよびL-BFGSオプティマイザ
+- サードパーティへの依存なし
+- 実行時のメモリ割り当てゼロ
 
 ## Build
 
@@ -42,7 +42,7 @@ cmake --build . --config Release -j 8
 ./bin/gpt-2-backend -m models/gpt-2-117M/ggml-model.bin -p "This is an example"
 ```
 
-For more information, checkout the corresponding programs in the [examples](examples) folder.
+詳細については、[examples](examples) フォルダ内の対応するプログラムを参照してください。
 
 ## Using CUDA
 
@@ -69,9 +69,9 @@ cmake -G "Ninja" -DCMAKE_C_COMPILER=icx -DCMAKE_CXX_COMPILER=icpx -DGGML_SYCL=ON
 cmake -G "Ninja" -DCMAKE_C_COMPILER=cl -DCMAKE_CXX_COMPILER=icx -DGGML_SYCL=ON ..
 ```
 
-## Compiling for Android
+## Android 向けのコンパイル
 
-Download and unzip the NDK from this download [page](https://developer.android.com/ndk/downloads). Set the NDK_ROOT_PATH environment variable or provide the absolute path to the CMAKE_ANDROID_NDK in the command below.
+こちらのダウンロード [ページ](https://developer.android.com/ndk/downloads) から NDK をダウンロードし、解凍してください。NDK_ROOT_PATH 環境変数を設定するか、以下のコマンドで CMAKE_ANDROID_NDK への絶対パスを指定してください。
 
 ```bash
 cmake .. \
@@ -102,7 +102,7 @@ export LD_LIBRARY_PATH=/data/local/tmp
 ./bin/gpt-2-backend -m models/ggml-model.bin -p "this is an example"
 ```
 
-## Resources
+## リソース
 
-- [Introduction to ggml](https://huggingface.co/blog/introduction-to-ggml)
-- [The GGUF file format](https://github.com/ggerganov/ggml/blob/master/docs/gguf.md)
+- [ggml入門](https://huggingface.co/blog/introduction-to-ggml)
+- [GGUFファイル形式](https://github.com/ggerganov/ggml/blob/master/docs/gguf.md)

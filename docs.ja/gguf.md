@@ -1,60 +1,59 @@
 # GGUF
 
-GGUF is a file format for storing models for inference with GGML and executors based on GGML. GGUF is a binary format that is designed for fast loading and saving of models, and for ease of reading. Models are traditionally developed using PyTorch or another framework, and then converted to GGUF for use in GGML.
+GGUFは、GGMLおよびGGMLベースのエグゼキュータを用いた推論用モデルを保存するためのファイル形式です。GGUFは、モデルの高速な読み込みと保存、そして読みやすさを考慮して設計されたバイナリ形式です。従来、モデルはPyTorchなどのフレームワークを用いて開発され、GGMLで使用できるようにGGUFに変換されていました。
 
-It is a successor file format to GGML, GGMF and GGJT, and is designed to be unambiguous by containing all the information needed to load a model. It is also designed to be extensible, so that new information can be added to models without breaking compatibility.
+GGUFはGGML、GGMF、GGJTの後継ファイル形式であり、モデルの読み込みに必要なすべての情報を含むことで、明確な定義が行えるように設計されています。また、互換性を損なうことなくモデルに新しい情報を追加できるよう、拡張性も考慮されています。
 
-For more information about the motivation behind GGUF, see [Historical State of Affairs](#historical-state-of-affairs).
+GGUFの背景にある動機の詳細については、[Historical State of Affairs](#historical-state-of-affairs)を参照してください。
 
-## Specification
+## 仕様
 
-GGUF is a format based on the existing GGJT, but makes a few changes to the format to make it more extensible and easier to use. The following features are desired:
+GGUFは既存のGGJTをベースにしたフォーマットですが、拡張性と使いやすさを向上させるためにいくつかの変更が加えられています。以下の機能が求められています。
 
-- Single-file deployment: they can be easily distributed and loaded, and do not require any external files for additional information.
-- Extensible: new features can be added to GGML-based executors/new information can be added to GGUF models without breaking compatibility with existing models.
-- `mmap` compatibility: models can be loaded using `mmap` for fast loading and saving.
-- Easy to use: models can be easily loaded and saved using a small amount of code, with no need for external libraries, regardless of the language used.
-- Full information: all information needed to load a model is contained in the model file, and no additional information needs to be provided by the user.
+- 単一ファイルでの展開：容易に配布および読み込みが可能で、追加情報のための外部ファイルを必要としません。
+- 拡張性：GGMLベースのエグゼキュータに新機能を追加したり、GGUFモデルに新しい情報を追加したりしても、既存のモデルとの互換性を損なうことはありません。
+- `mmap`との互換性：`mmap`を使用してモデルを読み込むことで、読み込みと保存を高速化できます。
+- 使いやすさ：使用言語に関わらず、外部ライブラリを必要とせず、少量のコードでモデルを簡単に読み込みおよび保存できます。
+- 完全な情報：モデルの読み込みに必要なすべての情報はモデルファイルに含まれており、ユーザーが追加情報を提供する必要はありません。
 
-The key difference between GGJT and GGUF is the use of a key-value structure for the hyperparameters (now referred to as metadata), rather than a list of untyped values. This allows for new metadata to be added without breaking compatibility with existing models, and to annotate the model with additional information that may be useful for inference or for identifying the model.
+GGJTとGGUFの主な違いは、ハイパーパラメータに型指定のない値のリストではなく、キーバリュー構造（現在はメタデータと呼ばれます）を使用していることです。これにより、既存のモデルとの互換性を損なうことなく新しいメタデータを追加し、推論やモデルの識別に役立つ追加情報をモデルにアノテーションとして付与することができます。
 
-### GGUF Naming Convention
+### GGUF 命名規則
 
-GGUF follow a naming convention of `<BaseName><SizeLabel><FineTune><Version><Encoding><Type><Shard>.gguf` where each component is delimitated by a `-` if present. Ultimately this is intended to make it easier for humans to at a glance get the most important details of a model. It is not intended to be perfectly parsable in the field due to the diversity of existing gguf filenames.
+GGUF は `<BaseName><SizeLabel><FineTune><Version><Encoding><Type><Shard>.gguf` という命名規則に従います。各コンポーネントは、存在する場合は `-` で区切られます。これは、人間がモデルの最も重要な詳細を一目で把握しやすくするためのものです。既存の gguf ファイル名の多様性のため、現場で完全に解析可能であることを意図したものではありません。
 
-The components are:
-1. **BaseName**: A descriptive name for the model base type or architecture.
-    - This can be derived from gguf metadata `general.basename` substituting spaces for dashes.
-1. **SizeLabel**: Parameter weight class (useful for leader boards) represented as `<expertCount>x<count><scale-prefix>`
-    - This can be derived from gguf metadata `general.size_label` if available or calculated if missing.
-    - Rounded decimal point is supported in count with a single letter scale prefix to assist in floating point exponent shown below
-      - `Q`: Quadrillion parameters.
-      - `T`: Trillion parameters.
-      - `B`: Billion parameters.
-      - `M`: Million parameters.
-      - `K`: Thousand parameters.
-    - Additional `-<attributes><count><scale-prefix>` can be appended as needed to indicate other attributes of interest
-1. **FineTune**: A descriptive name for the model fine tuning goal (e.g. Chat, Instruct, etc...)
-    - This can be derived from gguf metadata `general.finetune` substituting spaces for dashes.
-1. **Version**: (Optional) Denotes the model version number, formatted as `v<Major>.<Minor>`
-    - If model is missing a version number then assume `v1.0` (First Public Release)
-    - This can be derived from gguf metadata `general.version`
-1. **Encoding**: Indicates the weights encoding scheme that was applied to the model. Content, type mixture and arrangement however are determined by user code and can vary depending on project needs.
-1. **Type**: Indicates the kind of gguf file and the intended purpose for it
-  - If missing, then file is by default a typical gguf tensor model file
-  - `LoRA` : GGUF file is a LoRA adapter
-  - `vocab` : GGUF file with only vocab data and metadata
-1. **Shard**: (Optional) Indicates and denotes that the model has been split into multiple shards, formatted as `<ShardNum>-of-<ShardTotal>`.
-    - *ShardNum* : Shard position in this model. Must be 5 digits padded by zeros.
-      - Shard number always starts from `00001` onwards (e.g. First shard always starts at `00001-of-XXXXX` rather than `00000-of-XXXXX`).
-    - *ShardTotal* : Total number of shards in this model. Must be 5 digits padded by zeros.
+構成要素は次のとおりです。
+1. **BaseName**: モデルの基本タイプまたはアーキテクチャを表す説明的な名前。
+    - gguf メタデータ `general.basename` から、ダッシュをスペースに置き換えることで取得できます。
+1. **SizeLabel**: パラメータの重みクラス（リーダーボードで便利）。`<expertCount>x<count><scale-prefix>` の形式で表されます。
+    - gguf メタデータ `general.size_label` から取得できます（存在する場合）。存在しない場合は計算で取得できます。
+    - count では、以下に示す浮動小数点指数をサポートするために、1文字のスケールプレフィックスを付けることで、小数点の丸めがサポートされます。
+      - `Q`: 1000兆個のパラメータ。
+      - `T`: 1兆個のパラメータ。
+      - `B`: 10億個のパラメータ。
+      - `M`: 100万個のパラメータ。
+      - `K`: 1000個のパラメータ。
+    - 必要に応じて、`-<attributes><count><scale-prefix>` を追加して、他の重要な属性を示すことができます。
+1. **FineTune**: モデルの微調整目標を表すわかりやすい名前（例: Chat、Instruct など）
+    - これは、gguf メタデータ `general.finetune` から取得できます。ダッシュをスペースに置き換えてください。
+1. **Version**: (オプション) モデルのバージョン番号を示します。`v<Major>.<Minor>` の形式で指定します。
+    - モデルにバージョン番号がない場合は、`v1.0` (最初の公開リリース) であると想定します。
+    - これは、gguf メタデータ `general.version` から取得できます。
+1. **Encoding**: モデルに適用された重みのエンコーディング方式を示します。ただし、内容、型の混合、および配置はユーザーコードによって決定され、プロジェクトのニーズに応じて異なる場合があります。
+1. **Type**: gguf ファイルの種類と目的を示します。
+    - 省略した場合、ファイルはデフォルトで一般的な gguf テンソルモデルファイルになります。
+    - `LoRA`: GGUF ファイルは LoRA アダプタです。
+    - `vocab`: 語彙データとメタデータのみを含む GGUF ファイルです。
+1. **Shard**: (オプション) モデルが複数のシャードに分割されていることを示します。形式は `<ShardNum>-of-<ShardTotal>` です。
+    - *ShardNum*: このモデル内のシャードの位置。5桁で、先頭はゼロで埋める必要があります。
+      - シャード番号は常に `00001` から始まり、`00000-of-XXXXX` から始まりません。
+    - *ShardTotal*: このモデル内のシャードの総数。ゼロを埋め込んだ 5 桁の数字にする必要があります。
 
+#### 上記の命名規則の検証
 
-#### Validating Above Naming Convention
+すべてのモデルファイルには、少なくともBaseName、SizeLabel、Versionが含まれている必要があります。これにより、GGUF命名規則に準拠したファイルであることが簡単に検証されます。この問題の例として、Versionが省略されている場合、EncodingがFineTuneと誤認されやすいことが挙げられます。
 
-At a minimum all model files should have at least BaseName, SizeLabel, Version, in order to be easily validated as a file that is keeping with the GGUF Naming Convention. An example of this issue is that it is easy for Encoding to be mistaken as a FineTune if Version is omitted.
-
-To validate you can use this regular expression `^(?<BaseName>[A-Za-z0-9\s]*(?:(?:-(?:(?:[A-Za-z\s][A-Za-z0-9\s]*)|(?:[0-9\s]*)))*))-(?:(?<SizeLabel>(?:\d+x)?(?:\d+\.)?\d+[A-Za-z](?:-[A-Za-z]+(\d+\.)?\d+[A-Za-z]+)?)(?:-(?<FineTune>[A-Za-z0-9\s-]+))?)?-(?:(?<Version>v\d+(?:\.\d+)*))(?:-(?<Encoding>(?!LoRA|vocab)[\w_]+))?(?:-(?<Type>LoRA|vocab))?(?:-(?<Shard>\d{5}-of-\d{5}))?\.gguf$` which will check that you got the minimum BaseName, SizeLabel and Version present in the correct order.
+検証するには、次の正規表現を使用できます `^(?<BaseName>[A-Za-z0-9\s]*(?:(?:-(?:(?:[A-Za-z\s][A-Za-z0-9\s]*)|(?:[0-9\s]*)))*))-(?:(?<SizeLabel>(?:\d+x)?(?:\d+\.)?\d+[A-Za-z](?:-[A-Za-z]+(\d+\.)?\d+[A-Za-z]+)?)( ?:-(?<FineTune>[A-Za-z0-9\s-]+))?)?-(?:(?<Version>v\d+(?:\.\d+)*))(?:-(?<Encoding>(?!LoRA|vocab)[\w_]+))?(?:-(?<Type>LoRA|vocab))?(?:-(?<Shard>\d{5}-of-\d{5}))?\.gguf$` は、最小の BaseName、SizeLabel、および Version が正しい順序で存在しているかどうかを確認します。
 
 For example:
 
@@ -82,7 +81,7 @@ For example:
     - Shard: 3 out of 9 total shards
 
 
-<details><summary>Example Node.js Regex Function</summary>
+<details><summary>Node.js 正規表現関数の例</summary>
 
 ```js
 #!/usr/bin/env node
